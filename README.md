@@ -77,6 +77,10 @@ data/app/                         验收截图
 
 ## 在线版 / GitHub Pages
 
+**在线地址**：https://jasonsucn.github.io/haikou-weather-diorama/app/index.html
+
+> 直接打开仓库根地址会显示目录列表，请访问上面的 `/app/index.html`。
+
 在线版没有服务端代理，因此**天气数据需要你自己的和风天气 KEY**：
 
 1. 到 [和风天气控制台](https://console.qweather.com/setting) 免费创建应用，拿到 **API Host** 和 **KEY**（注意是账号专属 Host，不是 `devapi.qweather.com`）
