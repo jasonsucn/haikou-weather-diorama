@@ -167,7 +167,7 @@ export async function loadCity(scene, onStatus = () => {}) {
   let gltf = null;
   try {
     onStatus('载入微缩城市模型…');
-    gltf = await loader.loadAsync(new URL('../assets/models/haikou_v1.glb', import.meta.url).href);
+    gltf = await loader.loadAsync(new URL('../../assets/models/haikou_v1.glb', import.meta.url).href);
   } catch (err) {
     console.warn('[city] GLB failed, placeholder used', err);
     const ph = buildPlaceholder();
