@@ -169,10 +169,35 @@ function normalize(raw, degraded = false) {
 
 // ---------------------------------------------------------------- cache
 const cache = new Map();
-async function cached(key, ttl, loader) {
+// stale-while-revalidate: an expired entry is returned immediately and
+// refreshed in the background. A cold upstream fan-out can take >12s, and
+// blocking the browser that long used to make the UI fall back to demo data.
+async function cached(key, ttl, loader, fallback) {
   const hit = cache.get(key);
   const now = Date.now();
-  if (hit && now - hit.at < ttl) return { ...hit.value, cache: 'hit', age: Math.round((now - hit.at) / 1000) };
+  if (hit && now - hit.at < ttl) {
+    return { ...hit.value, cache: 'hit', age: Math.round((now - hit.at) / 1000) };
+  }
+  if (hit) {
+    if (!hit.refreshing) {
+      hit.refreshing = true;
+      loader()
+        .then((value) => cache.set(key, { at: Date.now(), value }))
+        .catch(() => { hit.refreshing = false; });
+    }
+    return { ...hit.value, cache: 'stale', age: Math.round((now - hit.at) / 1000) };
+  }
+  // Cold start: if a local snapshot exists, serve it instantly and refresh
+  // in the background so the first paint never waits on upstream.
+  if (typeof fallback === 'function') {
+    const fb = fallback();
+    if (fb) {
+      loader()
+        .then((value) => cache.set(key, { at: Date.now(), value }))
+        .catch(() => {});
+      return { ...fb, cache: 'cold', age: 0 };
+    }
+  }
   const value = await loader();
   cache.set(key, { at: now, value });
   return { ...value, cache: 'miss', age: 0 };
@@ -257,11 +282,11 @@ const server = http.createServer(async (req, res) => {
       }));
     }
     if (url.pathname === '/api/weather/summary') {
-      const data = await cached('summary', 10 * 60 * 1000, summary);
+      const data = await cached('summary', 10 * 60 * 1000, summary, () => { const snap = getSnapshot(); return snap ? normalize(snap, true) : null; });
       return send(res, 200, JSON.stringify(data));
     }
     if (url.pathname === '/api/weather/hourly') {
-      const data = await cached('summary', 10 * 60 * 1000, summary);
+      const data = await cached('summary', 10 * 60 * 1000, summary, () => { const snap = getSnapshot(); return snap ? normalize(snap, true) : null; });
       const n = Math.min(Number(url.searchParams.get('hours') || 24), data.hourly.length);
       return send(res, 200, JSON.stringify({
         ok: true, degraded: data.degraded, fetchedAt: data.fetchedAt,
@@ -269,7 +294,7 @@ const server = http.createServer(async (req, res) => {
       }));
     }
     if (url.pathname === '/api/weather/daily') {
-      const data = await cached('summary', 10 * 60 * 1000, summary);
+      const data = await cached('summary', 10 * 60 * 1000, summary, () => { const snap = getSnapshot(); return snap ? normalize(snap, true) : null; });
       const n = Math.min(Number(url.searchParams.get('days') || 7), data.daily.length);
       return send(res, 200, JSON.stringify({
         ok: true, degraded: data.degraded, fetchedAt: data.fetchedAt,

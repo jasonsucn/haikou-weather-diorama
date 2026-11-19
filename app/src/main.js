@@ -1,16 +1,16 @@
 // Entry point: Three.js scene, city, weather, timeline, interaction.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { loadCity, updateCity } from './city.js';
-import { initUI, windName } from './ui.js';
+import { loadCity, updateCity } from './city.js?v=20261119g';
+import { initUI, windName } from './ui.js?v=20261119g';
 import {
   createSky, createSea, createRain, createBirds, updateBirds,
   flashLightning, createLights, updateSky,
-} from './effects.js';
-import { SoundEngine } from './sound.js';
+} from './effects.js?v=20261119g';
+import { SoundEngine } from './sound.js?v=20261119g';
 import {
   getCredentials, saveCredentials, clearCredentials, fetchDirect,
-} from './weather-client.js';
+} from './weather-client.js?v=20261119g';
 
 const HOME_POS = new THREE.Vector3(-142, 168, 182);
 const HOME_TARGET = new THREE.Vector3(0, 8, 0);
@@ -513,12 +513,19 @@ document.addEventListener('keydown', unlockSound, { once: true });
 // (GitHub Pages) /api/* is unavailable, so use the user's own key — stored
 // only in their browser — to fetch straight from QWeather.
 let useDirect = false;
+// Static hosts (GitHub Pages etc.) have no /api proxy — skip the request so the
+// console stays clean instead of logging a 404 on every load.
+const IS_STATIC_HOST = /\.github\.io$/i.test(location.hostname) || location.protocol === 'file:';
 async function fetchWeather() {
   ui.setLoading('连接和风天气…');
-  const forceDirect = new URLSearchParams(location.search).has('direct');
+  const qs = new URLSearchParams(location.search);
+  const forceDirect = qs.has('direct');
+  const allowProxy = qs.has('proxy') || !IS_STATIC_HOST;
   try {
-    if (forceDirect) throw new Error('direct forced');
-    const res = await fetch('/api/weather/summary', { signal: AbortSignal.timeout(4000) });
+    if (forceDirect || !allowProxy) throw new Error('direct mode');
+    // Generous timeout: a cold cache makes the proxy fan out to 6 QWeather
+    // endpoints, which can take several seconds on a slow link.
+    const res = await fetch('/api/weather/summary', { signal: AbortSignal.timeout(12000) });
     const ct = res.headers.get('content-type') || '';
     if (!res.ok || !ct.includes('json')) throw new Error('no local proxy');
     const json = await res.json();
@@ -540,6 +547,7 @@ async function fetchWeather() {
       }
     } else {
       data = fallbackData();
+      console.warn('[weather] proxy failed:', err);
       ui.toast('在线版需设置你的和风天气 KEY，点击右上角⚙');
       openKeyModal();
     }
@@ -597,6 +605,9 @@ function fallbackData() {
 
 async function boot() {
   try {
+    // Weather first: the proxy request must not compete with the 5.5 MB GLB
+    // download, otherwise the fetch can time out and fall back to demo data.
+    await fetchWeather();
     ui.setLoading('载入微缩城市模型…');
     const [rig] = await Promise.all([loadCity(scene, (s) => ui.setLoading(s))]);
     city = rig;
@@ -634,7 +645,12 @@ async function boot() {
       }
     });
 
-    await fetchWeather();
+    // Re-apply the already-fetched weather now that the city exists.
+    if (data) {
+      ui.setLive(data);
+      buildTimeline();
+      applyWeather(data.current, hourOf(data.current.time));
+    }
     const forced = new URLSearchParams(location.search).get('wx');
     if (forced) {
       const map = { rain: 2, thunder: 3, fog: 4, cloudy: 1, sunny: 0 };

@@ -143,7 +143,7 @@
     });
   </script>
   <script type="module">
-    import('./src/main.js').catch((e) => {
+    import('./src/main.js?v=20261119g').catch((e) => {
       const el = document.getElementById('loadingText');
       if (el) el.textContent = '模块加载失败：' + (e.message || e);
       console.error('[module]', e);
