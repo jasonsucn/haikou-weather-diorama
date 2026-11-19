@@ -1,0 +1,6 @@
+.env
+.env.qweather
+data/qweather/*.json
+data/osm/*.json
+_acl-reports/
+node_modules/

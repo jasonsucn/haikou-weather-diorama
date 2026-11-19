@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Haikou V1 · GLB 验证</title>
+<style>
+html,body{margin:0;background:#e9efeb;color:#213d39;font:14px/1.6 system-ui,sans-serif}main{display:grid;grid-template-columns:1fr 340px;min-height:100vh}canvas{width:100%;height:100vh;display:block}aside{padding:24px;background:#f6f5ee}pre{white-space:pre-wrap;word-break:break-word;font-size:12px}h1{font-size:20px}#status{font-weight:700;color:#aa6b1b}a{color:#25685a}
+</style>
+<script type="importmap">{"imports":{"three":"/vendor/three.module.min.js","three/addons/":"/vendor/addons/"}}</script>
+<main><div id="view"></div><aside><h1>海口 V1 · GLB 验证</h1><p id="status">等待加载</p><pre id="result"></pre></aside></main>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const status=document.querySelector('#status'), result=document.querySelector('#result');
+const required=['Sea','Foam',...Array.from({length:6},(_,i)=>`Car_${String(i+1).padStart(2,'0')}`),...Array.from({length:9},(_,i)=>`Boat_${String(i+1).padStart(2,'0')}`),...Array.from({length:3},(_,i)=>`Cloud_${i+1}`),'ClockTower','Bridge_Tower_L','Bridge_Tower_R','Library','Park','Volcano','Haidian',...Array.from({length:8},(_,i)=>`Arcade_${String(i+1).padStart(2,'0')}`),...Array.from({length:28},(_,i)=>`Palm_${String(i+1).padStart(2,'0')}`)];
+window.addEventListener('error',e=>{status.textContent='FAIL';result.textContent=e.message;});
+try{
+  status.textContent='正在加载 GLB';
+  const response=await fetch('/assets/models/haikou_v1.glb',{cache:'no-store'});
+  if(!response.ok) throw new Error(`GLB HTTP ${response.status}`);
+  const bytes=await response.arrayBuffer();
+  const gltf=await new Promise((resolve,reject)=>new GLTFLoader().parse(bytes,'/',resolve,reject));
+  const missing=required.filter(name=>!gltf.scene.getObjectByName(name));
+  let nodes=0,meshes=0,triangles=0,cameras=0,lights=0;
+  const materials=new Set();
+  gltf.scene.traverse(obj=>{nodes++;if(obj.isCamera)cameras++;if(obj.isLight)lights++;if(obj.isMesh){meshes++;triangles+=(obj.geometry.index?.count??obj.geometry.attributes.position.count)/3;for(const m of Array.isArray(obj.material)?obj.material:[obj.material]) materials.add(m);obj.castShadow=true;obj.receiveShadow=true;}});
+  const report={loader:'Three.js GLTFLoader',byteLength:bytes.byteLength,nodes,meshes,triangles,materials:materials.size,requiredNames:required.length,missing,cameras,lights};
+  const pass=!missing.length&&triangles<=150000&&materials.size<=24&&bytes.byteLength<=8*1024*1024&&!cameras&&!lights;
+  report.pass=pass;
+  status.textContent=pass?'PASS · GLB 可载入，命名与预算通过':'FAIL · 请查看统计';
+  status.style.color=pass?'#1f7655':'#b54b35';
+  result.textContent=JSON.stringify(report,null,2);
+  document.body.dataset.status=pass?'pass':'fail';
+  const scene=new THREE.Scene();scene.background=new THREE.Color('#e9efeb');scene.add(gltf.scene);
+  scene.add(new THREE.HemisphereLight(0xf2fbff,0x5b6654,2.4));
+  const sun=new THREE.DirectionalLight(0xffe6c8,3.5);sun.position.set(-100,180,110);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-150;sun.shadow.camera.right=150;sun.shadow.camera.top=150;sun.shadow.camera.bottom=-150;sun.shadow.camera.far=500;scene.add(sun);
+  const area=document.querySelector('#view');
+  const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(area.clientWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;area.appendChild(renderer.domElement);
+  const camera=new THREE.PerspectiveCamera(42,area.clientWidth/innerHeight,0.5,2000);camera.position.set(-270,245,300);camera.lookAt(0,10,0);renderer.render(scene,camera);
+}catch(error){status.textContent='FAIL';status.style.color='#b54b35';result.textContent=error.stack||String(error);document.body.dataset.status='fail';}
+</script>
+</html>

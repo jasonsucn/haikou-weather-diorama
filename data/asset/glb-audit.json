@@ -1,0 +1,47 @@
+{
+  "glb": "assets/models/haikou_v1.glb",
+  "magic": "glTF",
+  "version": 2,
+  "file_length_matches": true,
+  "triangles": 98747,
+  "meshes": 759,
+  "nodes": 759,
+  "materials": 24,
+  "bytes": 5435812,
+  "mib": 5.184,
+  "sha256": "f7142a322e4c9ccc82a0985a4edf51bb0beed649c322ffb072ec9099f2de829c",
+  "required_count": 63,
+  "missing": [],
+  "non_identity_rotation_scale": [],
+  "cameras": 0,
+  "lights": 0,
+  "extensions": [],
+  "embedded_images": 1,
+  "previews": {
+    "preview-main.png": {
+      "width": 1400,
+      "height": 900,
+      "bytes": 1816267,
+      "sha256": "136a8c117a4c301db7da5fbbca5608997c8070f23ccdbf1c173378d78fe20f6e"
+    },
+    "preview-bridge.png": {
+      "width": 1400,
+      "height": 900,
+      "bytes": 1717983,
+      "sha256": "c6944297634ec0df082edd41900a5843ed1f0b2a7c9d11308694af46998868f0"
+    },
+    "preview-oldtown.png": {
+      "width": 1400,
+      "height": 900,
+      "bytes": 1830452,
+      "sha256": "f969368c19d5c993c8414050847714ca584c9478dba8f7ce28083ab12e76dec6"
+    },
+    "density.png": {
+      "width": 1200,
+      "height": 1200,
+      "bytes": 1590128,
+      "sha256": "ae1b5d20284872bb5cd3c74c8dd90de105c9f49d833bf869fb9a4ad212996b74"
+    }
+  },
+  "pass": true
+}

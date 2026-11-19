@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>海口 · 气象微缩城市</title>
+  <link rel="stylesheet" href="/app/styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "/vendor/three.module.min.js",
+        "three/addons/": "/vendor/addons/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+
+  <header id="topbar">
+    <div class="brand">
+      <h1>海口 · 气象微缩城市</h1>
+      <p>HAIKOU · WEATHER DIORAMA</p>
+    </div>
+    <div class="live">
+      <div class="live-main">
+        <span id="temp">--</span><span class="unit">°C</span>
+        <span id="cond">加载中</span>
+      </div>
+      <div class="live-sub">
+        <span id="feels">体感 --°</span>
+        <span id="aqi" class="aqi">AQI --</span>
+        <span id="updateTime">--:-- 更新</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="soundBtn" class="pill" title="声音">🔊 声音</button>
+      <button id="nightBtn" class="pill" title="昼夜">🌙 夜景</button>
+      <button id="demoBtn" class="pill" title="天气演示">✨ 演示</button>
+      <button id="keyBtn" class="pill" title="设置天气密钥">⚙ 密钥</button>
+    </div>
+  </header>
+
+  <aside id="card">
+    <div class="card-head">
+      <span id="cardCity">海口 · 龙华</span>
+      <span id="cardUpdate">--</span>
+    </div>
+    <div class="card-body">
+      <div class="metric"><label>温度</label><b id="mTemp">--°</b></div>
+      <div class="metric"><label>体感</label><b id="mFeels">--°</b></div>
+      <div class="metric"><label>湿度</label><b id="mHum">--%</b></div>
+      <div class="metric"><label>风</label><b id="mWind">--</b></div>
+      <div class="metric"><label>降水</label><b id="mRain">--</b></div>
+      <div class="metric"><label>能见度</label><b id="mVis">--</b></div>
+      <div class="metric"><label>气压</label><b id="mPressure">--</b></div>
+      <div class="metric"><label>紫外线</label><b id="mUv">--</b></div>
+    </div>
+    <div id="alerts" class="alerts"></div>
+    <div id="indices" class="indices"></div>
+    <div class="source">数据来源：和风天气 QWeather · 仅作演示</div>
+  </aside>
+
+  <aside id="landmarks">
+    <button data-lm="CenturyBridge">世纪大桥</button>
+    <button data-lm="Arcade_01">骑楼老街</button>
+    <button data-lm="ClockTower">钟楼</button>
+    <button data-lm="Library">云洞图书馆</button>
+    <button data-lm="Park">万绿园</button>
+    <button data-lm="Volcano">火山口</button>
+    <button data-lm="Haidian">海甸岛</button>
+    <button id="resetView" class="reset">复位视角</button>
+  </aside>
+
+  <footer id="timeline">
+    <div class="tl-top">
+      <div class="tabs">
+        <button class="tab active" data-mode="hour">24 小时</button>
+        <button class="tab" data-mode="day">7 天</button>
+      </div>
+      <div id="tlTitle" class="tl-title">现在</div>
+      <button id="playBtn" class="play" title="播放">▶</button>
+    </div>
+    <input id="slider" type="range" min="0" max="23" value="0" step="1" />
+    <div id="ticks" class="ticks"></div>
+    <div id="tlReadout" class="tl-readout"></div>
+    <div class="tl-hint">24 小时为逐小时预报 · 7 天为全天汇总</div>
+  </footer>
+
+  <div id="loading">
+    <div class="glass">
+      <div class="spinner"></div>
+      <h2>正在载入海口</h2>
+      <p id="loadingText">连接和风天气…</p>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <div id="tip"></div>
+
+  <div id="keyModal" class="key-modal" hidden>
+    <div class="key-panel">
+      <button id="keyClose" class="key-close" aria-label="关闭">×</button>
+      <h3>设置天气密钥</h3>
+      <p class="key-note" id="keyIntro">在线版没有服务端代理，填入你自己的和风天气 KEY 即可获取真实天气。KEY 只保存在此浏览器，不会上传。</p>
+      <label>API Host</label>
+      <input id="keyHost" type="text" placeholder="xxxxxx.qweatherapi.com" autocomplete="off" spellcheck="false" />
+      <label>API KEY</label>
+      <input id="keySecret" type="password" placeholder="你的 KEY" autocomplete="off" spellcheck="false" />
+      <p class="key-note">在 <a href="https://console.qweather.com/setting" target="_blank" rel="noopener">和风天气控制台</a> 创建应用后可获取。KEY 以明文存于本机 localStorage，请勿在公用电脑保存。</p>
+      <div class="key-actions">
+        <button id="keyClear" class="key-secondary">清除</button>
+        <button id="keySave" class="key-primary">保存并获取天气</button>
+      </div>
+      <p id="keyStatus" class="key-status"></p>
+    </div>
+  </div>
+
+  <script>
+    function showErr(msg) {
+      let el = document.getElementById('errbox');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'errbox';
+        el.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9999;max-width:70vw;padding:8px 12px;border-radius:8px;background:rgba(160,20,20,.92);color:#fff;font:12px/1.5 monospace;white-space:pre-wrap';
+        document.body.appendChild(el);
+      }
+      el.textContent = 'JS ERROR: ' + msg;
+    }
+    window.addEventListener('error', (e) => {
+      const el = document.getElementById('loadingText');
+      if (el) el.textContent = 'JS 错误：' + (e.message || e.error);
+      showErr((e.message || e.error) + ' @' + e.filename + ':' + e.lineno);
+      console.error('[app error]', e.message, e.filename, e.lineno);
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      const el = document.getElementById('loadingText');
+      if (el) el.textContent = 'Promise 错误：' + (e.reason?.message || e.reason);
+      showErr('Promise: ' + (e.reason?.message || e.reason));
+      console.error('[app rejection]', e.reason);
+    });
+  </script>
+  <script type="module">
+    import('/app/src/main.js').catch((e) => {
+      const el = document.getElementById('loadingText');
+      if (el) el.textContent = '模块加载失败：' + (e.message || e);
+      console.error('[module]', e);
+    });
+  </script>
+</body>
+</html>
