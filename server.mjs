@@ -228,7 +228,12 @@ function serveStatic(req, res) {
   let pathname;
   try { pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname); }
   catch { return send(res, 400, JSON.stringify({ error: 'bad url' })); }
-  if (pathname === '/') pathname = '/app/index.html';
+  // Redirect so the browser URL matches /app/, which keeps relative asset
+  // paths working both locally and on GitHub Pages subpaths.
+  if (pathname === '/') {
+    res.writeHead(302, { Location: '/app/index.html' });
+    return res.end();
+  }
   if (!PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     return send(res, 404, JSON.stringify({ error: 'not found', path: pathname }));
   }
