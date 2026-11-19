@@ -247,3 +247,7 @@ body.lm-open #card { opacity: 0; pointer-events: none; }
 .key-primary { background: #2b7fa8; color: #fff; border-color: #3a9bc8 !important; }
 .key-secondary { background: transparent; color: #9fb6c8; }
 .key-status { margin: 10px 0 0; min-height: 18px; font-size: 11px; color: #9ef5c8; }
+
+.key-demo { display: block; width: 100%; margin-top: 10px; padding: 9px 10px; border-radius: 8px; border: 1px dashed rgba(140,200,230,.35); background: rgba(20,45,62,.55); color: #9fd8ff; cursor: pointer; font-size: 12px; }
+.key-demo:hover { background: rgba(30,65,88,.75); }
+@media (max-width: 520px) { .key-panel { padding: 18px 16px 14px; } .key-demo { font-size: 11px; } }

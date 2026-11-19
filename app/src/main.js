@@ -150,6 +150,18 @@ document.getElementById('keyClose')?.addEventListener('click', closeKeyModal);
 document.getElementById('keyModal')?.addEventListener('click', (e) => {
   if (e.target.id === 'keyModal') closeKeyModal();
 });
+document.getElementById('keyDemo')?.addEventListener('click', () => {
+  closeKeyModal();
+  if (!demo) {
+    demo = true;
+    demoIndex = 0;
+    demoClock = 0;
+    ui.setDemo(true);
+    stepDemo();
+    scheduleDemo();
+  }
+  ui.toast('演示模式：晴 → 多云 → 小雨 → 雷雨 → 雾（无需 KEY）');
+});
 document.getElementById('keyClear')?.addEventListener('click', () => {
   clearCredentials();
   document.getElementById('keyHost').value = '';
